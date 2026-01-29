@@ -8,12 +8,9 @@ package org.bitbucket.ucchy.undine.command;
 import java.util.List;
 
 import org.bitbucket.ucchy.undine.Messages;
+import org.bitbucket.ucchy.undine.messaging.ComponentBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
-
-import com.github.ucchyocean.messaging.tellraw.ClickEventType;
-import com.github.ucchyocean.messaging.tellraw.MessageComponent;
-import com.github.ucchyocean.messaging.tellraw.MessageParts;
 
 /**
  * undine help コマンド
@@ -70,56 +67,49 @@ public class UndineHelpCommand implements SubCommand {
                 continue;
             }
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
             String l = "[" + Messages.get("HelpCommand_" + c) + "]";
-            MessageParts button = new MessageParts(l, ChatColor.AQUA);
             if ( c.equals("text") ) {
                 // undine text コマンドだけは、suggest_commandを設定する。
-                button.setClickEvent(ClickEventType.SUGGEST_COMMAND,
+                builder.addSuggestButton(l, ChatColor.AQUA,
                         UndineCommand.COMMAND + " " + c);
             } else {
-                button.setClickEvent(ClickEventType.RUN_COMMAND,
+                builder.addButton(l, ChatColor.AQUA,
                         UndineCommand.COMMAND + " " + c);
             }
-            msg.addParts(button);
 
-            msg.addText(" " + ChatColor.WHITE + Messages.get("HelpDescription_" + c));
+            builder.addText(" " + ChatColor.WHITE + Messages.get("HelpDescription_" + c));
 
-            msg.send(sender);
+            sender.sendMessage(builder.build());
         }
 
         // ugroupコマンドのヘルプ
         if ( sender.hasPermission(GroupCommand.PERMISSION + ".command") ) {
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
             String l = "[" + Messages.get("HelpCommand_group") + "]";
-            MessageParts button = new MessageParts(l, ChatColor.AQUA);
-            button.setClickEvent(ClickEventType.RUN_COMMAND, GroupCommand.COMMAND);
-            msg.addParts(button);
+            builder.addButton(l, ChatColor.AQUA, GroupCommand.COMMAND);
 
-            msg.addText(" " + ChatColor.WHITE + Messages.get("HelpDescription_group"));
+            builder.addText(" " + ChatColor.WHITE + Messages.get("HelpDescription_group"));
 
-            msg.send(sender);
+            sender.sendMessage(builder.build());
         }
 
         // helpコマンドのヘルプ
         if ( sender.hasPermission(PERMISSION_PREFIX + "help") ) {
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
             String l = "[" + Messages.get("HelpCommand_help") + "]";
-            MessageParts button = new MessageParts(l, ChatColor.AQUA);
-            button.setClickEvent(ClickEventType.RUN_COMMAND,
-                    UndineCommand.COMMAND + " help");
-            msg.addParts(button);
+            builder.addButton(l, ChatColor.AQUA, UndineCommand.COMMAND + " help");
 
-            msg.addText(" " + ChatColor.WHITE + Messages.get("HelpDescription_help"));
+            builder.addText(" " + ChatColor.WHITE + Messages.get("HelpDescription_help"));
 
-            msg.send(sender);
+            sender.sendMessage(builder.build());
         }
 
         sender.sendMessage(Messages.get("ListLastLine"));

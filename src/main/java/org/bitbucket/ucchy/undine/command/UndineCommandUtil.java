@@ -5,7 +5,9 @@
  */
 package org.bitbucket.ucchy.undine.command;
 
+import net.kyori.adventure.text.Component;
 import org.bitbucket.ucchy.undine.Messages;
+import org.bitbucket.ucchy.undine.messaging.ComponentBuilder;
 import org.bitbucket.ucchy.undine.sender.MailSender;
 import org.bitbucket.ucchy.undine.sender.MailSenderConsole;
 import org.bitbucket.ucchy.undine.sender.MailSenderPlayer;
@@ -13,10 +15,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-
-import com.github.ucchyocean.messaging.tellraw.ClickEventType;
-import com.github.ucchyocean.messaging.tellraw.MessageComponent;
-import com.github.ucchyocean.messaging.tellraw.MessageParts;
 
 /**
  * コマンド実行関連のユーティリティクラス
@@ -55,19 +53,13 @@ public class UndineCommandUtil {
     protected static void showOKCancelButton(
             MailSender ms, String okCommand, String cancelCommand) {
 
-        MessageComponent msg = new MessageComponent();
-        msg.addText("     ");
-        MessageParts buttonOK = new MessageParts(
-                Messages.get("ButtonOK"), ChatColor.AQUA);
-        buttonOK.setClickEvent(ClickEventType.RUN_COMMAND, okCommand);
-        msg.addParts(buttonOK);
-        msg.addText("     ");
-        MessageParts buttonCancel = new MessageParts(
-                Messages.get("ButtonCancel"), ChatColor.AQUA);
-        buttonCancel.setClickEvent(ClickEventType.RUN_COMMAND, cancelCommand);
-        msg.addParts(buttonCancel);
+        ComponentBuilder builder = new ComponentBuilder();
+        builder.addText("     ");
+        builder.addButton(Messages.get("ButtonOK"), ChatColor.AQUA, okCommand);
+        builder.addText("     ");
+        builder.addButton(Messages.get("ButtonCancel"), ChatColor.AQUA, cancelCommand);
 
-        sendMessageComponent(msg, ms);
+        sendMessageComponent(builder.build(), ms);
     }
 
     /**
@@ -100,11 +92,11 @@ public class UndineCommandUtil {
      * @param msg メッセージコンポーネント
      * @param sender 送信先
      */
-    private static void sendMessageComponent(MessageComponent msg, MailSender sender) {
+    private static void sendMessageComponent(Component msg, MailSender sender) {
         if ( sender instanceof MailSenderPlayer && sender.isOnline() ) {
-            msg.send(sender.getPlayer());
+            sender.getPlayer().sendMessage(msg);
         } else if ( sender instanceof MailSenderConsole ) {
-            msg.send(Bukkit.getConsoleSender());
+            Bukkit.getConsoleSender().sendMessage(msg);
         }
     }
 }

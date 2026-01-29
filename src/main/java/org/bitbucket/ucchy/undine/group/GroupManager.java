@@ -12,21 +12,19 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 
+import net.kyori.adventure.text.Component;
 import org.bitbucket.ucchy.undine.Messages;
 import org.bitbucket.ucchy.undine.UndineMailer;
 import org.bitbucket.ucchy.undine.bridge.PermissionsExBridge;
 import org.bitbucket.ucchy.undine.command.GroupCommand;
 import org.bitbucket.ucchy.undine.command.ListCommand;
 import org.bitbucket.ucchy.undine.command.UndineCommand;
+import org.bitbucket.ucchy.undine.messaging.ComponentBuilder;
 import org.bitbucket.ucchy.undine.sender.MailSender;
 import org.bitbucket.ucchy.undine.sender.MailSenderConsole;
 import org.bitbucket.ucchy.undine.sender.MailSenderPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-
-import com.github.ucchyocean.messaging.tellraw.ClickEventType;
-import com.github.ucchyocean.messaging.tellraw.MessageComponent;
-import com.github.ucchyocean.messaging.tellraw.MessageParts;
 
 /**
  * メールグループ管理クラス
@@ -316,39 +314,31 @@ public class GroupManager {
 
             GroupData group = list.get(index);
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
-            MessageParts button =
-                    new MessageParts("[" + group.getName() + "]", ChatColor.AQUA);
-            button.setClickEvent(ClickEventType.RUN_COMMAND,
-                    COMMAND + " detail " + group.getName());
-            button.setHoverText(group.getHoverText());
-            msg.addParts(button);
+            builder.addButton("[" + group.getName() + "]", ChatColor.AQUA,
+                    COMMAND + " detail " + group.getName(), group.getHoverText());
 
             if ( group instanceof SpecialGroupAll ) {
-                msg.addText(" " + Messages.get("GroupSpecialAllSummary"));
+                builder.addText(" " + Messages.get("GroupSpecialAllSummary"));
             } else {
-                msg.addText(" " + Messages.get("GroupListSummayLine",
+                builder.addText(" " + Messages.get("GroupListSummayLine",
                         new String[]{"%owner", "%num"},
                         new String[]{group.getOwner().getName(), group.getMembers().size() + ""}));
             }
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         if ( canMakeNewGroup(sender) ) {
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
-            MessageParts button =
-                    new MessageParts(Messages.get("GroupMakeNewGroup"), ChatColor.AQUA);
-            button.setClickEvent(ClickEventType.SUGGEST_COMMAND,
-                    COMMAND + " create ");
-            button.setHoverText(Messages.get("GroupMakeNewGroupToolTip"));
-            msg.addParts(button);
+            builder.addSuggestButton(Messages.get("GroupMakeNewGroup"), ChatColor.AQUA,
+                    COMMAND + " create ", Messages.get("GroupMakeNewGroupToolTip"));
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         sendPager(sender, COMMAND + " list", "", page, max,
@@ -386,37 +376,31 @@ public class GroupManager {
 
             GroupData group = list.get(index);
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
-            MessageParts button =
-                    new MessageParts("[" + group.getName() + "]", ChatColor.AQUA);
-            button.setClickEvent(ClickEventType.RUN_COMMAND,
-                    next + " " + group.getName());
-            button.setHoverText(group.getHoverText());
-            msg.addParts(button);
+            builder.addButton("[" + group.getName() + "]", ChatColor.AQUA,
+                    next + " " + group.getName(), group.getHoverText());
 
             if ( group instanceof SpecialGroupAll ) {
-                msg.addText(" " + Messages.get("GroupSpecialAllSummary"));
+                builder.addText(" " + Messages.get("GroupSpecialAllSummary"));
             } else {
-                msg.addText(" " + Messages.get("GroupListSummayLine",
+                builder.addText(" " + Messages.get("GroupListSummayLine",
                         new String[]{"%owner", "%num"},
                         new String[]{group.getOwner().getName(), group.getMembers().size() + ""}));
             }
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         if ( canMakeNewGroup(sender) ) {
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
-            MessageParts button =
-                    new MessageParts(Messages.get("GroupMakeNewGroup"), ChatColor.WHITE);
-            button.setHoverText(Messages.get("GroupMakeNewGroupToolTipForSelection"));
-            msg.addParts(button);
+            builder.addHoverText(Messages.get("GroupMakeNewGroup"), ChatColor.WHITE,
+                    Messages.get("GroupMakeNewGroupToolTipForSelection"));
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         sendPager(sender, COMMAND + " list", " " + next, page, max,
@@ -474,13 +458,11 @@ public class GroupManager {
             }
         }
 
-        MessageComponent msg = new MessageComponent();
-        msg.addText(parts + parts + " ");
-        MessageParts button = new MessageParts(Messages.get("Return"), ChatColor.AQUA);
-        button.setClickEvent(ClickEventType.RUN_COMMAND, COMMAND + " list");
-        msg.addParts(button);
-        msg.addText(" " + parts + parts);
-        sendMessageComponent(msg, sender);
+        ComponentBuilder builder = new ComponentBuilder();
+        builder.addText(parts + parts + " ");
+        builder.addButton(Messages.get("Return"), ChatColor.AQUA, COMMAND + " list");
+        builder.addText(" " + parts + parts);
+        sendMessageComponent(builder.build(), sender);
     }
 
     /**
@@ -523,79 +505,55 @@ public class GroupManager {
 
             MailSender member = members.get(index);
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre + "  ");
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre + "  ");
 
             if ( !group.getOwner().equals(member) ) {
-                MessageParts delete = new MessageParts(
-                        Messages.get("GroupDeleteMemberButton"), ChatColor.AQUA);
-                delete.setClickEvent(
-                        ClickEventType.RUN_COMMAND,
-                        COMMAND + " remove " + group.getName() + " " + member.getName());
-                delete.setHoverText(Messages.get("GroupDeleteMemberToolTip"));
-                msg.addParts(delete);
-
+                builder.addButton(Messages.get("GroupDeleteMemberButton"), ChatColor.AQUA,
+                        COMMAND + " remove " + group.getName() + " " + member.getName(),
+                        Messages.get("GroupDeleteMemberToolTip"));
             } else {
-                MessageParts delete = new MessageParts(
-                        Messages.get("GroupDeleteMemberButton"), ChatColor.WHITE);
-                delete.setHoverText(Messages.get("GroupDeleteMemberOwnerToolTip"));
-                msg.addParts(delete);
-
+                builder.addHoverText(Messages.get("GroupDeleteMemberButton"), ChatColor.WHITE,
+                        Messages.get("GroupDeleteMemberOwnerToolTip"));
             }
 
-            msg.addText(member.getName());
+            builder.addText(member.getName());
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         // メンバー追加ボタンと、設定ボタンを置く
         if ( group.getMembers().size() < parent.getUndineConfig().getMaxGroupMember()
                 || sender.hasPermission(PERMISSION_INFINITE_ADD_MEMBER) ) {
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
             if ( !parent.getUndineConfig().isEnablePlayerList() ) {
-                MessageParts add = new MessageParts(Messages.get("GroupAddMember"), ChatColor.AQUA);
-                add.setClickEvent(
-                        ClickEventType.SUGGEST_COMMAND,
+                builder.addSuggestButton(Messages.get("GroupAddMember"), ChatColor.AQUA,
                         COMMAND + " add " + group.getName() + " ");
-                msg.addParts(add);
-
             } else {
-                MessageParts addAddress = new MessageParts(
-                        Messages.get("GroupAddMemberAddress"), ChatColor.AQUA);
-                addAddress.setClickEvent(
-                        ClickEventType.RUN_COMMAND,
-                        ListCommand.COMMAND_INDEX + " "
-                        + COMMAND + " add " + group.getName() + " ");
-                msg.addParts(addAddress);
+                builder.addButton(Messages.get("GroupAddMemberAddress"), ChatColor.AQUA,
+                        ListCommand.COMMAND_INDEX + " " + COMMAND + " add " + group.getName() + " ");
             }
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
 
-            msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder2 = new ComponentBuilder();
+            builder2.addText(pre);
 
-            MessageParts addall = new MessageParts(Messages.get("GroupAddMemberAllLogin"), ChatColor.AQUA);
-            addall.setClickEvent(
-                    ClickEventType.RUN_COMMAND,
+            builder2.addButton(Messages.get("GroupAddMemberAllLogin"), ChatColor.AQUA,
                     COMMAND + " addalllogin " + group.getName());
-            msg.addParts(addall);
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder2.build(), sender);
         }
 
-        MessageComponent msg = new MessageComponent();
-        msg.addText(pre);
-        MessageParts setting = new MessageParts(
-                Messages.get("GroupChangeSetting"), ChatColor.AQUA);
-        setting.setClickEvent(
-                ClickEventType.RUN_COMMAND,
+        ComponentBuilder builder = new ComponentBuilder();
+        builder.addText(pre);
+        builder.addButton(Messages.get("GroupChangeSetting"), ChatColor.AQUA,
                 COMMAND + " detail " + group.getName() + " setting");
-        msg.addParts(setting);
 
-        sendMessageComponent(msg, sender);
+        sendMessageComponent(builder.build(), sender);
 
         sendPager(sender, COMMAND + " detail " + group.getName(), "",
                 page, max, Messages.get("DetailHorizontalParts"),
@@ -624,111 +582,100 @@ public class GroupManager {
         sender.sendMessage(pre + Messages.get("GroupSendPerm")
                 + ChatColor.WHITE + mode.getDisplayString() );
 
-        MessageComponent msgSend = new MessageComponent();
-        msgSend.addText(pre + " ");
-        addChangeButtons(msgSend,
+        ComponentBuilder builderSend = new ComponentBuilder();
+        builderSend.addText(pre + " ");
+        addChangeButtons(builderSend,
                 COMMAND + " perm " + group.getName() + " send",
                 (mode != GroupPermissionMode.OWNER),
                 (mode != GroupPermissionMode.MEMBER),
                 (mode != GroupPermissionMode.EVERYONE), true);
-        sendMessageComponent(msgSend, sender);
+        sendMessageComponent(builderSend.build(), sender);
 
         mode = group.getModifyMode();
         sender.sendMessage(pre + Messages.get("GroupModifyPerm")
                 + ChatColor.WHITE + mode.getDisplayString() );
 
-        MessageComponent msgMod = new MessageComponent();
-        msgMod.addText(pre + " ");
-        addChangeButtons(msgMod,
+        ComponentBuilder builderMod = new ComponentBuilder();
+        builderMod.addText(pre + " ");
+        addChangeButtons(builderMod,
                 COMMAND + " perm " + group.getName() + " modify",
                 (mode != GroupPermissionMode.OWNER),
                 (mode != GroupPermissionMode.MEMBER),
                 false, false);
-        sendMessageComponent(msgMod, sender);
+        sendMessageComponent(builderMod.build(), sender);
 
         mode = group.getDissolutionMode();
         sender.sendMessage(pre + Messages.get("GroupDissolutionPerm")
                 + ChatColor.WHITE + mode.getDisplayString() );
 
-        MessageComponent msgDis = new MessageComponent();
-        msgDis.addText(pre + " ");
-        addChangeButtons(msgDis,
+        ComponentBuilder builderDis = new ComponentBuilder();
+        builderDis.addText(pre + " ");
+        addChangeButtons(builderDis,
                 COMMAND + " perm " + group.getName() + " dissolution",
                 (mode != GroupPermissionMode.OWNER),
                 (mode != GroupPermissionMode.MEMBER),
                 false, false);
-        sendMessageComponent(msgDis, sender);
+        sendMessageComponent(builderDis.build(), sender);
 
         if ( group.canBreakup(sender) ) {
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
-            MessageParts breakup = new MessageParts(
-                    Messages.get("GroupDeleteGroup"), ChatColor.AQUA);
-            breakup.setClickEvent(
-                    ClickEventType.RUN_COMMAND,
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
+            builder.addButton(Messages.get("GroupDeleteGroup"), ChatColor.AQUA,
                     COMMAND + " delete " + group.getName());
-            msg.addParts(breakup);
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
-        MessageComponent msg = new MessageComponent();
-        msg.addText(pre);
-        MessageParts breakup = new MessageParts(
-                Messages.get("GroupReturnToMemberList"), ChatColor.AQUA);
-        breakup.setClickEvent(
-                ClickEventType.RUN_COMMAND,
+        ComponentBuilder builder = new ComponentBuilder();
+        builder.addText(pre);
+        builder.addButton(Messages.get("GroupReturnToMemberList"), ChatColor.AQUA,
                 COMMAND + " detail " + group.getName());
-        msg.addParts(breakup);
-        sendMessageComponent(msg, sender);
+        sendMessageComponent(builder.build(), sender);
 
         sender.sendMessage(Messages.get("DetailLastLine"));
     }
 
     /**
      * 権限設定のメッセージコンポーネントにボタンを加える
-     * @param msg
+     * @param builder
      * @param base
      * @param owner
      * @param member
      * @param everyone
      * @param evisible
      */
-    private void addChangeButtons(MessageComponent msg, String base,
+    private void addChangeButtons(ComponentBuilder builder, String base,
             boolean owner, boolean member, boolean everyone, boolean evisible) {
 
-        msg.addText(" ");
-        MessageParts buttonOwner = new MessageParts(
-                Messages.get("GroupPermChangeButton", "%perm",
-                        GroupPermissionMode.OWNER.getDisplayString()));
+        builder.addText(" ");
+        String ownerLabel = Messages.get("GroupPermChangeButton", "%perm",
+                GroupPermissionMode.OWNER.getDisplayString());
         if ( owner ) {
-            buttonOwner.setColor(ChatColor.AQUA);
-            buttonOwner.setClickEvent(ClickEventType.RUN_COMMAND,
+            builder.addButton(ownerLabel, ChatColor.AQUA,
                     base + " " + GroupPermissionMode.OWNER);
+        } else {
+            builder.addText(ownerLabel, ChatColor.WHITE);
         }
-        msg.addParts(buttonOwner);
 
-        msg.addText(" ");
-        MessageParts buttonMember = new MessageParts(
-                Messages.get("GroupPermChangeButton", "%perm",
-                        GroupPermissionMode.MEMBER.getDisplayString()));
+        builder.addText(" ");
+        String memberLabel = Messages.get("GroupPermChangeButton", "%perm",
+                GroupPermissionMode.MEMBER.getDisplayString());
         if ( member ) {
-            buttonMember.setColor(ChatColor.AQUA);
-            buttonMember.setClickEvent(ClickEventType.RUN_COMMAND,
+            builder.addButton(memberLabel, ChatColor.AQUA,
                     base + " " + GroupPermissionMode.MEMBER);
+        } else {
+            builder.addText(memberLabel, ChatColor.WHITE);
         }
-        msg.addParts(buttonMember);
 
         if ( evisible ) {
-            msg.addText(" ");
-            MessageParts buttonEveryone = new MessageParts(
-                    Messages.get("GroupPermChangeButton", "%perm",
-                            GroupPermissionMode.EVERYONE.getDisplayString()));
+            builder.addText(" ");
+            String everyoneLabel = Messages.get("GroupPermChangeButton", "%perm",
+                    GroupPermissionMode.EVERYONE.getDisplayString());
             if ( everyone ) {
-                buttonEveryone.setColor(ChatColor.AQUA);
-                buttonEveryone.setClickEvent(ClickEventType.RUN_COMMAND,
+                builder.addButton(everyoneLabel, ChatColor.AQUA,
                         base + " " + GroupPermissionMode.EVERYONE);
+            } else {
+                builder.addText(everyoneLabel, ChatColor.WHITE);
             }
-            msg.addParts(buttonEveryone);
         }
     }
 
@@ -755,68 +702,47 @@ public class GroupManager {
         String nextToolTip = Messages.get("NextPageToolTip");
         String lastToolTip = Messages.get("LastPageToolTip");
 
-        MessageComponent msg = new MessageComponent();
+        ComponentBuilder builder = new ComponentBuilder();
 
-        msg.addText(parts + " ");
+        builder.addText(parts + " ");
 
         if ( returnCommand != null ) {
-            MessageParts returnButton = new MessageParts(
-                    Messages.get("Return"), ChatColor.AQUA);
-            returnButton.setClickEvent(ClickEventType.RUN_COMMAND, returnCommand);
-            returnButton.setHoverText(Messages.get("ReturnToolTip"));
-            msg.addParts(returnButton);
-
-            msg.addText(" ");
+            builder.addButton(Messages.get("Return"), ChatColor.AQUA,
+                    returnCommand, Messages.get("ReturnToolTip"));
+            builder.addText(" ");
         }
 
         if ( page > 1 ) {
-            MessageParts firstButton = new MessageParts(
-                    firstLabel, ChatColor.AQUA);
-            firstButton.setClickEvent(ClickEventType.RUN_COMMAND,
-                    commandPre + " 1" + commandSuf);
-            firstButton.setHoverText(firstToolTip);
-            msg.addParts(firstButton);
+            builder.addButton(firstLabel, ChatColor.AQUA,
+                    commandPre + " 1" + commandSuf, firstToolTip);
 
-            msg.addText(" ");
+            builder.addText(" ");
 
-            MessageParts prevButton = new MessageParts(
-                    prevLabel, ChatColor.AQUA);
-            prevButton.setClickEvent(ClickEventType.RUN_COMMAND,
-                    commandPre + " " + (page - 1) + commandSuf);
-            prevButton.setHoverText(prevToolTip);
-            msg.addParts(prevButton);
+            builder.addButton(prevLabel, ChatColor.AQUA,
+                    commandPre + " " + (page - 1) + commandSuf, prevToolTip);
 
         } else {
-            msg.addText(firstLabel + " " + prevLabel, ChatColor.WHITE);
-
+            builder.addText(firstLabel + " " + prevLabel, ChatColor.WHITE);
         }
 
-        msg.addText(" (" + page + "/" + max + ") ");
+        builder.addText(" (" + page + "/" + max + ") ");
 
         if ( page < max ) {
-            MessageParts nextButton = new MessageParts(
-                    nextLabel, ChatColor.AQUA);
-            nextButton.setClickEvent(ClickEventType.RUN_COMMAND,
-                    commandPre + " " + (page + 1) + commandSuf);
-            nextButton.setHoverText(nextToolTip);
-            msg.addParts(nextButton);
+            builder.addButton(nextLabel, ChatColor.AQUA,
+                    commandPre + " " + (page + 1) + commandSuf, nextToolTip);
 
-            msg.addText(" ");
+            builder.addText(" ");
 
-            MessageParts lastButton = new MessageParts(
-                    lastLabel, ChatColor.AQUA);
-            lastButton.setClickEvent(ClickEventType.RUN_COMMAND,
-                    commandPre + " " + max + commandSuf);
-            lastButton.setHoverText(lastToolTip);
-            msg.addParts(lastButton);
+            builder.addButton(lastLabel, ChatColor.AQUA,
+                    commandPre + " " + max + commandSuf, lastToolTip);
 
         } else {
-            msg.addText(nextLabel + " " + lastLabel, ChatColor.WHITE);
+            builder.addText(nextLabel + " " + lastLabel, ChatColor.WHITE);
         }
 
-        msg.addText(" " + parts);
+        builder.addText(" " + parts);
 
-        sendMessageComponent(msg, sender);
+        sendMessageComponent(builder.build(), sender);
     }
 
     /**
@@ -850,11 +776,11 @@ public class GroupManager {
      * @param msg メッセージコンポーネント
      * @param sender 送信先
      */
-    private void sendMessageComponent(MessageComponent msg, MailSender sender) {
+    private void sendMessageComponent(Component msg, MailSender sender) {
         if ( sender instanceof MailSenderPlayer && sender.isOnline() ) {
-            msg.send(sender.getPlayer());
+            sender.getPlayer().sendMessage(msg);
         } else if ( sender instanceof MailSenderConsole ) {
-            msg.send(Bukkit.getConsoleSender());
+            Bukkit.getConsoleSender().sendMessage(msg);
         }
     }
 }

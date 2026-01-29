@@ -3,8 +3,8 @@ version: ${project.version}
 main: org.bitbucket.ucchy.undine.UndineMailer
 description: UndineMailer - Mail Plugin
 softdepend: [Vault,PermissionsEx]
-author: ucchy
-api-version: 1.13
+author: ucchy, turu64
+api-version: '1.21'
 
 commands:
   mail:

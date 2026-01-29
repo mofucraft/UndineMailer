@@ -16,11 +16,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
+import net.kyori.adventure.text.Component;
 import org.bitbucket.ucchy.undine.bridge.VaultEcoBridge;
 import org.bitbucket.ucchy.undine.command.GroupCommand;
 import org.bitbucket.ucchy.undine.command.ListCommand;
 import org.bitbucket.ucchy.undine.command.UndineCommand;
 import org.bitbucket.ucchy.undine.group.GroupData;
+import org.bitbucket.ucchy.undine.messaging.ComponentBuilder;
 import org.bitbucket.ucchy.undine.sender.MailSender;
 import org.bitbucket.ucchy.undine.sender.MailSenderBlock;
 import org.bitbucket.ucchy.undine.sender.MailSenderConsole;
@@ -33,10 +35,6 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
-
-import com.github.ucchyocean.messaging.tellraw.ClickEventType;
-import com.github.ucchyocean.messaging.tellraw.MessageComponent;
-import com.github.ucchyocean.messaging.tellraw.MessageParts;
 
 /**
  * メールデータマネージャ
@@ -830,9 +828,9 @@ public class MailManager {
 
         if ( mail.getAttachments().size() > 0 ) {
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre + Messages.get("MailDetailAttachmentsLine"));
-            msg.addText(" ");
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre + Messages.get("MailDetailAttachmentsLine"));
+            builder.addText(" ");
 
             if ( !mail.isEditmode() ) {
 
@@ -844,11 +842,8 @@ public class MailManager {
                     if ( sender.hasPermission(PERMISSION_ATTACH) &&
                             sender.hasPermission(PERMISSION_ATTACH_INBOXMAIL) ) {
 
-                        MessageParts button = new MessageParts(
-                                Messages.get("MailDetailAttachmentBox"), ChatColor.AQUA);
-                        button.setClickEvent(ClickEventType.RUN_COMMAND,
+                        builder.addButton(Messages.get("MailDetailAttachmentBox"), ChatColor.AQUA,
                                 COMMAND + " attach " + mail.getIndex());
-                        msg.addParts(button);
                     }
 
                 } else if ( !mail.isAttachmentsCancelled() && !mail.isAttachmentsOpened()
@@ -858,31 +853,27 @@ public class MailManager {
 
                     if ( sender.hasPermission(PERMISSION_ATTACH) ) {
 
-                        MessageParts button = new MessageParts(
-                                Messages.get("MailDetailAttachmentBoxCancel"),
-                                ChatColor.AQUA);
-                        button.setClickEvent(ClickEventType.RUN_COMMAND,
-                                COMMAND + " attach " + mail.getIndex() + " cancel");
-                        button.setHoverText(Messages.get("MailDetailAttachmentBoxCancelToolTip"));
-                        msg.addParts(button);
+                        builder.addButton(Messages.get("MailDetailAttachmentBoxCancel"), ChatColor.AQUA,
+                                COMMAND + " attach " + mail.getIndex() + " cancel",
+                                Messages.get("MailDetailAttachmentBoxCancelToolTip"));
                     }
 
                 } else if ( mail.isAttachmentsCancelled() && !mail.getFrom().equals(sender) ) {
                     // キャンセル済みで受信者の場合、キャンセルされた旨のラベルを出す
 
                     if ( mail.isAttachmentsRefused() ) {
-                        msg.addText(Messages.get("MailDetailAttachmentBoxRefused"));
+                        builder.addText(Messages.get("MailDetailAttachmentBoxRefused"));
                         if ( mail.getAttachmentsRefusedReason() != null ) {
-                            msg.addText("\n" + pre + "  " + ChatColor.WHITE
+                            builder.addText("\n" + pre + "  " + ChatColor.WHITE
                                     + mail.getAttachmentsRefusedReason());
                         }
                     } else {
-                        msg.addText(Messages.get("MailDetailAttachmentBoxCancelled"));
+                        builder.addText(Messages.get("MailDetailAttachmentBoxCancelled"));
                     }
                 }
             }
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
 
             for ( ItemStack i : mail.getAttachments() ) {
                 sender.sendMessage(pre + "  " + ChatColor.WHITE + getItemDesc(i, true));
@@ -895,28 +886,22 @@ public class MailManager {
                     costDesc = eco.format(mail.getCostMoney());
                 }
 
-                msg = new MessageComponent();
+                ComponentBuilder costBuilder = new ComponentBuilder();
                 if ( mail.getCostMoney() > 0 ) {
-                    msg.addText(pre + Messages.get(
+                    costBuilder.addText(pre + Messages.get(
                             "MailDetailAttachCostMoneyLine", "%fee", costDesc));
                 } else {
-                    msg.addText(pre + Messages.get(
+                    costBuilder.addText(pre + Messages.get(
                             "MailDetailAttachCostItemLine", "%item",
                             getItemDesc(mail.getCostItem(), true)));
                 }
                 if ( mail.getTo().contains(sender) ) {
-                    msg.addText(" ");
-                    MessageParts refuseButton = new MessageParts(
-                            Messages.get("MailDetailAttachmentBoxRefuse"),
-                            ChatColor.AQUA);
-                    refuseButton.setClickEvent(
-                            ClickEventType.SUGGEST_COMMAND,
-                            UndineCommand.COMMAND + " attach " + mail.getIndex() + " refuse ");
-                    refuseButton.setHoverText(
+                    costBuilder.addText(" ");
+                    costBuilder.addSuggestButton(Messages.get("MailDetailAttachmentBoxRefuse"), ChatColor.AQUA,
+                            UndineCommand.COMMAND + " attach " + mail.getIndex() + " refuse ",
                             Messages.get("MailDetailAttachmentBoxRefuseToolTip"));
-                    msg.addParts(refuseButton);
                 }
-                sendMessageComponent(msg, sender);
+                sendMessageComponent(costBuilder.build(), sender);
             }
 
         } else if ( mail.isAttachmentsCancelled() ) {
@@ -953,16 +938,13 @@ public class MailManager {
             if ( mail.isSetTrash(sender) ) {
                 // ゴミ箱に入っているメールなら、Restoreボタンを表示する
 
-                MessageComponent msg = new MessageComponent();
-                msg.addText(pre);
+                ComponentBuilder builder = new ComponentBuilder();
+                builder.addText(pre);
 
-                MessageParts button = new MessageParts(
-                        Messages.get("MailDetailTrashRestore"), ChatColor.AQUA);
-                button.setClickEvent(ClickEventType.RUN_COMMAND,
+                builder.addButton(Messages.get("MailDetailTrashRestore"), ChatColor.AQUA,
                         COMMAND + " trash restore " + mail.getIndex());
-                msg.addParts(button);
 
-                sendMessageComponent(msg, sender);
+                sendMessageComponent(builder.build(), sender);
 
             } else {
                 // 既に添付が1つもないメールなら、Deleteボタンを表示する
@@ -974,30 +956,24 @@ public class MailManager {
 
                 if ( attachNothing || isRecipient ) {
 
-                    MessageComponent msg = new MessageComponent();
-                    msg.addText(pre);
+                    ComponentBuilder builder = new ComponentBuilder();
+                    builder.addText(pre);
 
                     if ( attachNothing ) {
-                        MessageParts button = new MessageParts(
-                                Messages.get("MailDetailTrash"), ChatColor.AQUA);
-                        button.setClickEvent(ClickEventType.RUN_COMMAND,
+                        builder.addButton(Messages.get("MailDetailTrash"), ChatColor.AQUA,
                                 COMMAND + " trash set " + mail.getIndex());
-                        msg.addParts(button);
                     }
 
                     if ( attachNothing && isRecipient ) {
-                        msg.addText(" ");
+                        builder.addText(" ");
                     }
 
                     if ( isRecipient ) {
-                        MessageParts button = new MessageParts(
-                                Messages.get("MailDetailReply"), ChatColor.AQUA);
-                        button.setClickEvent(ClickEventType.RUN_COMMAND,
+                        builder.addButton(Messages.get("MailDetailReply"), ChatColor.AQUA,
                                 COMMAND + " write " + mail.getFrom().getName());
-                        msg.addParts(button);
                     }
 
-                    sendMessageComponent(msg, sender);
+                    sendMessageComponent(builder.build(), sender);
                 }
             }
         }
@@ -1006,16 +982,13 @@ public class MailManager {
                 && sender instanceof MailSenderPlayer
                 && sender.hasPermission(PERMISSION_TELEPORT) ) {
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
-            MessageParts button = new MessageParts(
-                    Messages.get("MailDetailTeleport"), ChatColor.AQUA);
-            button.setClickEvent(ClickEventType.RUN_COMMAND,
+            builder.addButton(Messages.get("MailDetailTeleport"), ChatColor.AQUA,
                     COMMAND + " teleport " + mail.getIndex());
-            msg.addParts(button);
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         sendMailDescriptionPager(sender, mail.getIndex());
@@ -1059,114 +1032,80 @@ public class MailManager {
         sender.sendMessage(parts + parts + " " + title + " " + parts + parts);
 
         for ( int i=0; i<mail.getTo().size(); i++ ) {
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
-            MessageParts buttonDelete = new MessageParts(
-                    Messages.get("EditmodeToDelete"), ChatColor.AQUA);
-            buttonDelete.setClickEvent(
-                    ClickEventType.RUN_COMMAND,
-                    COMMAND + " to delete " + (i+1));
-            buttonDelete.setHoverText(Messages.get("EditmodeToDeleteToolTip"));
-            msg.addParts(buttonDelete);
-            msg.addText(" ");
-            MessageParts button = new MessageParts(
-                    Messages.get("EditmodeTo"), ChatColor.AQUA);
-            button.setClickEvent(
-                    ClickEventType.SUGGEST_COMMAND,
-                    COMMAND + " to " + (i+1) + " " + mail.getTo().get(i).getName());
-            button.setHoverText(Messages.get("EditmodeToToolTip"));
-            msg.addParts(button);
-            msg.addText(" ");
-            msg.addText(mail.getTo().get(i).getName(), ChatColor.WHITE);
-            sendMessageComponent(msg, sender);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
+            builder.addButton(Messages.get("EditmodeToDelete"), ChatColor.AQUA,
+                    COMMAND + " to delete " + (i+1),
+                    Messages.get("EditmodeToDeleteToolTip"));
+            builder.addText(" ");
+            builder.addSuggestButton(Messages.get("EditmodeTo"), ChatColor.AQUA,
+                    COMMAND + " to " + (i+1) + " " + mail.getTo().get(i).getName(),
+                    Messages.get("EditmodeToToolTip"));
+            builder.addText(" ");
+            builder.addText(mail.getTo().get(i).getName(), ChatColor.WHITE);
+            sendMessageComponent(builder.build(), sender);
         }
 
         UndineConfig config = UndineMailer.getInstance().getUndineConfig();
 
         if ( mail.getTo().size() < config.getMaxDestination() ) {
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
 
             if ( !config.isEnablePlayerList() ) {
-                MessageParts button = new MessageParts(
-                        Messages.get("EditmodeToAdd"), ChatColor.AQUA);
-                button.setClickEvent(
-                        ClickEventType.SUGGEST_COMMAND,
-                        COMMAND + " to " + (mail.getTo().size()+1) + " ");
-                button.setHoverText(Messages.get("EditmodeToAddToolTip"));
-                msg.addParts(button);
-
+                builder.addSuggestButton(Messages.get("EditmodeToAdd"), ChatColor.AQUA,
+                        COMMAND + " to " + (mail.getTo().size()+1) + " ",
+                        Messages.get("EditmodeToAddToolTip"));
             } else {
-                MessageParts buttonAddress = new MessageParts(
-                        Messages.get("EditmodeToAddress"), ChatColor.AQUA);
-                buttonAddress.setClickEvent(
-                        ClickEventType.RUN_COMMAND,
+                builder.addButton(Messages.get("EditmodeToAddress"), ChatColor.AQUA,
                         ListCommand.COMMAND_INDEX + " " + COMMAND
                             + " to " + (mail.getTo().size()+1));
-                msg.addParts(buttonAddress);
-
             }
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         for ( int i=0; i<mail.getToGroups().size(); i++ ) {
             GroupData group = parent.getGroupManager().getGroup(mail.getToGroups().get(i));
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
-            MessageParts buttonDelete = new MessageParts(
-                    Messages.get("EditmodeToDelete"), ChatColor.AQUA);
-            buttonDelete.setClickEvent(
-                    ClickEventType.RUN_COMMAND,
-                    COMMAND + " to group delete " + (i+1));
-            buttonDelete.setHoverText(Messages.get("EditmodeToDeleteToolTip"));
-            msg.addParts(buttonDelete);
-            msg.addText(" " + ChatColor.WHITE + Messages.get("EditmodeToGroup") + " ",
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
+            builder.addButton(Messages.get("EditmodeToDelete"), ChatColor.AQUA,
+                    COMMAND + " to group delete " + (i+1),
+                    Messages.get("EditmodeToDeleteToolTip"));
+            builder.addText(" " + ChatColor.WHITE + Messages.get("EditmodeToGroup") + " ",
                     ChatColor.WHITE);
-            MessageParts groupName = new MessageParts(mail.getToGroups().get(i), ChatColor.WHITE);
             if ( group != null ) {
-                groupName.setHoverText(group.getHoverText());
+                builder.addHoverText(mail.getToGroups().get(i), ChatColor.WHITE, group.getHoverText());
+            } else {
+                builder.addText(mail.getToGroups().get(i), ChatColor.WHITE);
             }
-            msg.addParts(groupName);
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         if ( sender.hasPermission(GroupCommand.PERMISSION + ".list") &&
                 mail.getToGroups().size() < config.getMaxDestinationGroup() ) {
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
-            MessageParts button = new MessageParts(
-                    Messages.get("EditmodeToGroupAdd"), ChatColor.AQUA);
-            button.setClickEvent(
-                    ClickEventType.RUN_COMMAND,
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
+            builder.addButton(Messages.get("EditmodeToGroupAdd"), ChatColor.AQUA,
                     GroupCommand.COMMAND + " list 1 "
                             + COMMAND + " to group " + (mail.getToGroups().size()+1));
-            msg.addParts(button);
 
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         for ( int i=0; i<mail.getMessage().size(); i++ ) {
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
-            MessageParts buttonDelete = new MessageParts(
-                    Messages.get("EditmodeLineDelete"), ChatColor.AQUA);
-            buttonDelete.setClickEvent(
-                    ClickEventType.RUN_COMMAND,
-                    COMMAND + " message delete " + (i+1));
-            buttonDelete.setHoverText(Messages.get("EditmodeLineDeleteToolTip"));
-            msg.addParts(buttonDelete);
-            msg.addText(" ");
-            MessageParts buttonEdit = new MessageParts(
-                    Messages.get("EditmodeLineEdit", "%num", i+1), ChatColor.AQUA);
-            buttonEdit.setClickEvent(
-                    ClickEventType.SUGGEST_COMMAND,
-                    COMMAND + " message " + (i+1) + " " + mail.getMessage().get(i));
-            buttonEdit.setHoverText(Messages.get("EditmodeLineEditToolTip"));
-            msg.addParts(buttonEdit);
-            msg.addText(" " + Utility.replaceColorCode(mail.getMessage().get(i)), ChatColor.WHITE);
-            sendMessageComponent(msg, sender);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
+            builder.addButton(Messages.get("EditmodeLineDelete"), ChatColor.AQUA,
+                    COMMAND + " message delete " + (i+1),
+                    Messages.get("EditmodeLineDeleteToolTip"));
+            builder.addText(" ");
+            builder.addSuggestButton(Messages.get("EditmodeLineEdit", "%num", i+1), ChatColor.AQUA,
+                    COMMAND + " message " + (i+1) + " " + mail.getMessage().get(i),
+                    Messages.get("EditmodeLineEditToolTip"));
+            builder.addText(" " + Utility.replaceColorCode(mail.getMessage().get(i)), ChatColor.WHITE);
+            sendMessageComponent(builder.build(), sender);
         }
 
         if ( mail.getMessage().size() < MailData.MESSAGE_MAX_SIZE ) {
@@ -1174,15 +1113,11 @@ public class MailManager {
             if ( num > MailData.MESSAGE_MAX_SIZE ) {
                 num = MailData.MESSAGE_MAX_SIZE;
             }
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
-            MessageParts button = new MessageParts(
-                    Messages.get("EditmodeLineAdd"), ChatColor.AQUA);
-            button.setClickEvent(
-                    ClickEventType.RUN_COMMAND,
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
+            builder.addButton(Messages.get("EditmodeLineAdd"), ChatColor.AQUA,
                     COMMAND + " message " + num);
-            msg.addParts(button);
-            sendMessageComponent(msg, sender);
+            sendMessageComponent(builder.build(), sender);
         }
 
         boolean senderHasPermissionOfOpenAttachBox =
@@ -1190,17 +1125,13 @@ public class MailManager {
                 sender.hasPermission(PERMISSION_ATTACH_SENDMAIL);
 
         if ( config.isEnableAttachment() && senderHasPermissionOfOpenAttachBox ) {
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
-            MessageParts button = new MessageParts(
-                    Messages.get("EditmodeAttach"), ChatColor.AQUA);
-            button.setClickEvent(
-                    ClickEventType.RUN_COMMAND,
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
+            builder.addButton(Messages.get("EditmodeAttach"), ChatColor.AQUA,
                     COMMAND + " attach");
-            msg.addParts(button);
-            msg.addText(" ");
-            msg.addText(Messages.get("EditmodeAttachNum", "%num", mail.getAttachments().size()));
-            sendMessageComponent(msg, sender);
+            builder.addText(" ");
+            builder.addText(Messages.get("EditmodeAttachNum", "%num", mail.getAttachments().size()));
+            sendMessageComponent(builder.build(), sender);
 
             boolean isEnableCODMoney = (UndineMailer.getInstance().getVaultEco() != null)
                     && config.isEnableCODMoney();
@@ -1208,31 +1139,25 @@ public class MailManager {
 
             if ( mail.getAttachments().size() > 0 && (isEnableCODMoney || isEnableCODItem) ) {
 
-                MessageComponent msgfee = new MessageComponent();
-                msgfee.addText(pre);
+                ComponentBuilder feeBuilder = new ComponentBuilder();
+                feeBuilder.addText(pre);
 
                 if ( mail.getCostMoney() == 0 && mail.getCostItem() == null ) {
 
                     if ( isEnableCODMoney ) {
-                        MessageParts buttonFee = new MessageParts(
-                                Messages.get("EditmodeCostMoney"), ChatColor.AQUA);
-                        buttonFee.setClickEvent(
-                                ClickEventType.SUGGEST_COMMAND, COMMAND + " costmoney ");
-                        buttonFee.setHoverText(Messages.get("EditmodeCostMoneyToolTip"));
-                        msgfee.addParts(buttonFee);
+                        feeBuilder.addSuggestButton(Messages.get("EditmodeCostMoney"), ChatColor.AQUA,
+                                COMMAND + " costmoney ",
+                                Messages.get("EditmodeCostMoneyToolTip"));
                     }
 
                     if ( isEnableCODMoney && isEnableCODItem ) {
-                        msgfee.addText(" ");
+                        feeBuilder.addText(" ");
                     }
 
                     if ( isEnableCODItem ) {
-                        MessageParts buttonItem = new MessageParts(
-                                Messages.get("EditmodeCostItem"), ChatColor.AQUA);
-                        buttonItem.setClickEvent(
-                                ClickEventType.SUGGEST_COMMAND, COMMAND + " costitem ");
-                        buttonItem.setHoverText(Messages.get("EditmodeCostItemToolTip"));
-                        msgfee.addParts(buttonItem);
+                        feeBuilder.addSuggestButton(Messages.get("EditmodeCostItem"), ChatColor.AQUA,
+                                COMMAND + " costitem ",
+                                Messages.get("EditmodeCostItemToolTip"));
                     }
 
                 } else if ( mail.getCostMoney() > 0 ) {
@@ -1243,59 +1168,37 @@ public class MailManager {
                         costDesc = eco.format(mail.getCostMoney());
                     }
 
-                    MessageParts buttonDelete = new MessageParts(
-                            Messages.get("EditmodeCostMoneyRemove"), ChatColor.AQUA);
-                    buttonDelete.setClickEvent(
-                            ClickEventType.RUN_COMMAND,
-                            COMMAND + " costmoney 0");
-                    buttonDelete.setHoverText(Messages.get("EditmodeCostMoneyRemoveToolTip"));
-                    msgfee.addParts(buttonDelete);
-                    MessageParts buttonFee = new MessageParts(
-                            Messages.get("EditmodeCostMoneyData", "%fee", costDesc),
-                            ChatColor.AQUA);
-                    buttonFee.setClickEvent(
-                            ClickEventType.SUGGEST_COMMAND,
+                    feeBuilder.addButton(Messages.get("EditmodeCostMoneyRemove"), ChatColor.AQUA,
+                            COMMAND + " costmoney 0",
+                            Messages.get("EditmodeCostMoneyRemoveToolTip"));
+                    feeBuilder.addSuggestButton(
+                            Messages.get("EditmodeCostMoneyData", "%fee", costDesc), ChatColor.AQUA,
                             COMMAND + " costmoney " + mail.getCostMoney());
-                    msgfee.addParts(buttonFee);
 
                 } else {
 
                     String desc = getItemDesc(mail.getCostItem(), true);
 
-                    MessageParts buttonDelete = new MessageParts(
-                            Messages.get("EditmodeCostItemRemove"), ChatColor.AQUA);
-                    buttonDelete.setClickEvent(
-                            ClickEventType.RUN_COMMAND,
-                            COMMAND + " costitem remove");
-                    buttonDelete.setHoverText(Messages.get("EditmodeCostItemRemoveToolTip"));
-                    msgfee.addParts(buttonDelete);
-                    MessageParts buttonItem = new MessageParts(
-                            Messages.get("EditmodeCostItemData", "%item", desc),
-                            ChatColor.AQUA);
-                    buttonItem.setClickEvent(
-                            ClickEventType.SUGGEST_COMMAND,
+                    feeBuilder.addButton(Messages.get("EditmodeCostItemRemove"), ChatColor.AQUA,
+                            COMMAND + " costitem remove",
+                            Messages.get("EditmodeCostItemRemoveToolTip"));
+                    feeBuilder.addSuggestButton(
+                            Messages.get("EditmodeCostItemData", "%item", desc), ChatColor.AQUA,
                             COMMAND + " costitem " + getItemDesc(mail.getCostItem(), false));
-                    msgfee.addParts(buttonItem);
 
                 }
 
-                sendMessageComponent(msgfee, sender);
+                sendMessageComponent(feeBuilder.build(), sender);
             }
         }
 
-        MessageComponent last = new MessageComponent();
+        ComponentBuilder last = new ComponentBuilder();
         last.addText(parts);
-        MessageParts sendButton = new MessageParts(
-                Messages.get("EditmodeSend"), ChatColor.AQUA);
-        sendButton.setClickEvent(ClickEventType.RUN_COMMAND, COMMAND + " send");
-        last.addParts(sendButton);
+        last.addButton(Messages.get("EditmodeSend"), ChatColor.AQUA, COMMAND + " send");
         last.addText(parts);
-        MessageParts cancelButton = new MessageParts(
-                Messages.get("EditmodeCancel"), ChatColor.AQUA);
-        cancelButton.setClickEvent(ClickEventType.RUN_COMMAND, COMMAND + " cancel");
-        last.addParts(cancelButton);
+        last.addButton(Messages.get("EditmodeCancel"), ChatColor.AQUA, COMMAND + " cancel");
         last.addText(parts);
-        sendMessageComponent(last, sender);
+        sendMessageComponent(last.build(), sender);
 
         // メッセージがすべて空行の場合は、TIPSを表示する(see issue #90)
         if ( areMessagesEmpty(mail) ) {
@@ -1350,9 +1253,9 @@ public class MailManager {
         String lastToolTip = Messages.get("LastMailToolTip");
         String parts = Messages.get("DetailHorizontalParts");
 
-        MessageComponent msg = new MessageComponent();
+        ComponentBuilder builder = new ComponentBuilder();
 
-        msg.addText(parts + " ");
+        builder.addText(parts + " ");
 
         if ( !meta.equals("unread") ) {
             String returnCommand;
@@ -1363,69 +1266,49 @@ public class MailManager {
             } else {
                 returnCommand = COMMAND + " inbox";
             }
-            MessageParts returnButton = new MessageParts(
-                    Messages.get("Return"), ChatColor.AQUA);
-            returnButton.setClickEvent(ClickEventType.RUN_COMMAND, returnCommand);
-            returnButton.setHoverText(Messages.get("ReturnListToolTip"));
-            msg.addParts(returnButton);
+            builder.addButton(Messages.get("Return"), ChatColor.AQUA,
+                    returnCommand, Messages.get("ReturnListToolTip"));
 
-            msg.addText(" ");
+            builder.addText(" ");
         }
 
         if ( page > 0 ) {
             int first = list.get(0).getIndex();
             int prev = list.get(page - 1).getIndex();
 
-            MessageParts firstButton = new MessageParts(
-                    firstLabel, ChatColor.AQUA);
-            firstButton.setClickEvent(ClickEventType.RUN_COMMAND,
-                    COMMAND + " read " + first);
-            firstButton.setHoverText(firstToolTip);
-            msg.addParts(firstButton);
+            builder.addButton(firstLabel, ChatColor.AQUA,
+                    COMMAND + " read " + first, firstToolTip);
 
-            msg.addText(" ");
+            builder.addText(" ");
 
-            MessageParts prevButton = new MessageParts(
-                    prevLabel, ChatColor.AQUA);
-            prevButton.setClickEvent(ClickEventType.RUN_COMMAND,
-                    COMMAND + " read " + prev);
-            prevButton.setHoverText(prevToolTip);
-            msg.addParts(prevButton);
+            builder.addButton(prevLabel, ChatColor.AQUA,
+                    COMMAND + " read " + prev, prevToolTip);
 
         } else {
-            msg.addText(firstLabel + " " + prevLabel, ChatColor.WHITE);
-
+            builder.addText(firstLabel + " " + prevLabel, ChatColor.WHITE);
         }
 
-        msg.addText(" (" + (page + 1) + "/" + list.size() + ") ");
+        builder.addText(" (" + (page + 1) + "/" + list.size() + ") ");
 
         if ( page < (list.size() - 1) ) {
             int next = list.get(page + 1).getIndex();
             int last = list.get(list.size() - 1).getIndex();
 
-            MessageParts nextButton = new MessageParts(
-                    nextLabel, ChatColor.AQUA);
-            nextButton.setClickEvent(ClickEventType.RUN_COMMAND,
-                    COMMAND + " read " + next);
-            nextButton.setHoverText(nextToolTip);
-            msg.addParts(nextButton);
+            builder.addButton(nextLabel, ChatColor.AQUA,
+                    COMMAND + " read " + next, nextToolTip);
 
-            msg.addText(" ");
+            builder.addText(" ");
 
-            MessageParts lastButton = new MessageParts(
-                    lastLabel, ChatColor.AQUA);
-            lastButton.setClickEvent(ClickEventType.RUN_COMMAND,
-                    COMMAND + " read " + last);
-            lastButton.setHoverText(lastToolTip);
-            msg.addParts(lastButton);
+            builder.addButton(lastLabel, ChatColor.AQUA,
+                    COMMAND + " read " + last, lastToolTip);
 
         } else {
-            msg.addText(nextLabel + " " + lastLabel, ChatColor.WHITE);
+            builder.addText(nextLabel + " " + lastLabel, ChatColor.WHITE);
         }
 
-        msg.addText(" " + parts);
+        builder.addText(" " + parts);
 
-        sendMessageComponent(msg, sender);
+        sendMessageComponent(builder.build(), sender);
     }
 
     /**
@@ -1481,23 +1364,19 @@ public class MailManager {
     private void sendMailLine(
             MailSender sender, String pre, String summary, MailData mail) {
 
-        MessageComponent msg = new MessageComponent();
+        ComponentBuilder builder = new ComponentBuilder();
 
-        msg.addText(pre);
+        builder.addText(pre);
 
-        MessageParts button = new MessageParts(
-                "[" + mail.getIndex() + "]", ChatColor.AQUA);
-        button.setClickEvent(
-                ClickEventType.RUN_COMMAND,
-                UndineCommand.COMMAND + " read " + mail.getIndex());
-        button.setHoverText(Messages.get("SummaryOpenThisMailToolTip"));
-        msg.addParts(button);
+        builder.addButton("[" + mail.getIndex() + "]", ChatColor.AQUA,
+                UndineCommand.COMMAND + " read " + mail.getIndex(),
+                Messages.get("SummaryOpenThisMailToolTip"));
 
-        msg.addText((mail.getAttachments().size() > 0) ? "*" : " ");
+        builder.addText((mail.getAttachments().size() > 0) ? "*" : " ");
 
-        msg.addText(summary);
+        builder.addText(summary);
 
-        sendMessageComponent(msg, sender);
+        sendMessageComponent(builder.build(), sender);
     }
 
     /**
@@ -1519,54 +1398,37 @@ public class MailManager {
         String lastToolTip = Messages.get("LastPageToolTip");
         String parts = Messages.get("ListHorizontalParts");
 
-        MessageComponent msg = new MessageComponent();
+        ComponentBuilder builder = new ComponentBuilder();
 
-        msg.addText(parts + " ");
+        builder.addText(parts + " ");
 
         if ( page > 1 ) {
-            MessageParts firstButton = new MessageParts(
-                    firstLabel, ChatColor.AQUA);
-            firstButton.setClickEvent(ClickEventType.RUN_COMMAND, commandPre + " 1");
-            firstButton.setHoverText(firstToolTip);
-            msg.addParts(firstButton);
+            builder.addButton(firstLabel, ChatColor.AQUA, commandPre + " 1", firstToolTip);
 
-            msg.addText(" ");
+            builder.addText(" ");
 
-            MessageParts prevButton = new MessageParts(
-                    prevLabel, ChatColor.AQUA);
-            prevButton.setClickEvent(ClickEventType.RUN_COMMAND, commandPre + " " + (page - 1));
-            prevButton.setHoverText(prevToolTip);
-            msg.addParts(prevButton);
+            builder.addButton(prevLabel, ChatColor.AQUA, commandPre + " " + (page - 1), prevToolTip);
 
         } else {
-            msg.addText(firstLabel + " " + prevLabel, ChatColor.WHITE);
-
+            builder.addText(firstLabel + " " + prevLabel, ChatColor.WHITE);
         }
 
-        msg.addText(" (" + page + "/" + max + ") ");
+        builder.addText(" (" + page + "/" + max + ") ");
 
         if ( page < max ) {
-            MessageParts nextButton = new MessageParts(
-                    nextLabel, ChatColor.AQUA);
-            nextButton.setClickEvent(ClickEventType.RUN_COMMAND, commandPre + " " + (page + 1));
-            nextButton.setHoverText(nextToolTip);
-            msg.addParts(nextButton);
+            builder.addButton(nextLabel, ChatColor.AQUA, commandPre + " " + (page + 1), nextToolTip);
 
-            msg.addText(" ");
+            builder.addText(" ");
 
-            MessageParts lastButton = new MessageParts(
-                    lastLabel, ChatColor.AQUA);
-            lastButton.setClickEvent(ClickEventType.RUN_COMMAND, commandPre + " " + max);
-            lastButton.setHoverText(lastToolTip);
-            msg.addParts(lastButton);
+            builder.addButton(lastLabel, ChatColor.AQUA, commandPre + " " + max, lastToolTip);
 
         } else {
-            msg.addText(nextLabel + " " + lastLabel, ChatColor.WHITE);
+            builder.addText(nextLabel + " " + lastLabel, ChatColor.WHITE);
         }
 
-        msg.addText(" " + parts);
+        builder.addText(" " + parts);
 
-        sendMessageComponent(msg, sender);
+        sendMessageComponent(builder.build(), sender);
     }
 
     /**
@@ -1606,11 +1468,11 @@ public class MailManager {
      * @param msg メッセージコンポーネント
      * @param sender 送信先
      */
-    private void sendMessageComponent(MessageComponent msg, MailSender sender) {
+    private void sendMessageComponent(Component msg, MailSender sender) {
         if ( sender instanceof MailSenderPlayer && sender.isOnline() ) {
-            msg.send(sender.getPlayer());
+            sender.getPlayer().sendMessage(msg);
         } else if ( sender instanceof MailSenderConsole ) {
-            msg.send(Bukkit.getConsoleSender());
+            Bukkit.getConsoleSender().sendMessage(msg);
         }
     }
 

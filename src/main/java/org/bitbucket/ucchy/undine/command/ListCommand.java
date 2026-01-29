@@ -12,14 +12,11 @@ import java.util.List;
 
 import org.bitbucket.ucchy.undine.Messages;
 import org.bitbucket.ucchy.undine.UndineMailer;
+import org.bitbucket.ucchy.undine.messaging.ComponentBuilder;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
-
-import com.github.ucchyocean.messaging.tellraw.ClickEventType;
-import com.github.ucchyocean.messaging.tellraw.MessageComponent;
-import com.github.ucchyocean.messaging.tellraw.MessageParts;
 
 /**
  * listコマンド
@@ -103,34 +100,30 @@ public class ListCommand implements TabExecutor {
             int linenum = (int)((indexes.size() - 1) / 10) + 1;
             for ( int line=0; line<linenum; line++ ) {
 
-                MessageComponent msg = new MessageComponent();
-                msg.addText(pre);
+                ComponentBuilder builder = new ComponentBuilder();
+                builder.addText(pre);
 
                 for ( int i=0; i<10; i++ ) {
                     int index = line * 10 + i;
                     if ( index >= indexes.size() ) break;
                     String p = indexes.get(index);
-                    MessageParts button = new MessageParts("[" + p + "]",  ChatColor.AQUA);
-                    button.setClickEvent(ClickEventType.RUN_COMMAND,
+                    builder.addButton("[" + p + "]", ChatColor.AQUA,
                             COMMAND_LIST + " " + p + " 1" + next);
-                    msg.addParts(button);
-                    msg.addText(" ");
+                    builder.addText(" ");
                 }
 
-                msg.send(sender);
+                sender.sendMessage(builder.build());
             }
 
             String returnCommand = (next.startsWith(" " + UndineCommand.COMMAND))
                     ? UndineCommand.COMMAND + " write"
                     : next.trim().replace("add", "detail");
 
-            MessageComponent msg = new MessageComponent();
-            msg.addText(parts + parts + " ");
-            MessageParts button = new MessageParts(Messages.get("Return"), ChatColor.AQUA);
-            button.setClickEvent(ClickEventType.RUN_COMMAND, returnCommand);
-            msg.addParts(button);
-            msg.addText(" " + parts + parts);
-            msg.send(sender);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(parts + parts + " ");
+            builder.addButton(Messages.get("Return"), ChatColor.AQUA, returnCommand);
+            builder.addText(" " + parts + parts);
+            sender.sendMessage(builder.build());
 
             return true;
         }
@@ -166,14 +159,14 @@ public class ListCommand implements TabExecutor {
             }
 
             String name = list.get(index);
-            MessageComponent msg = new MessageComponent();
-            msg.addText(pre);
-            MessageParts button = new MessageParts("[" + name + "]", ChatColor.AQUA);
+            ComponentBuilder builder = new ComponentBuilder();
+            builder.addText(pre);
             if ( next.length() > 0 ) {
-                button.setClickEvent(ClickEventType.RUN_COMMAND, next.trim() + " " + name);
+                builder.addButton("[" + name + "]", ChatColor.AQUA, next.trim() + " " + name);
+            } else {
+                builder.addText("[" + name + "]", ChatColor.AQUA);
             }
-            msg.addParts(button);
-            msg.send(sender);
+            sender.sendMessage(builder.build());
         }
 
         sendPager(sender, COMMAND_LIST + " " + prefix, page, max, next);
@@ -211,59 +204,40 @@ public class ListCommand implements TabExecutor {
         String lastToolTip = Messages.get("LastPageToolTip");
         String parts = Messages.get("ListHorizontalParts");
 
-        MessageComponent msg = new MessageComponent();
+        ComponentBuilder builder = new ComponentBuilder();
 
-        msg.addText(parts + " ");
+        builder.addText(parts + " ");
 
-        MessageParts returnButton = new MessageParts(returnLabel, ChatColor.AQUA);
-        returnButton.setClickEvent(ClickEventType.RUN_COMMAND, COMMAND_INDEX + next);
-        returnButton.setHoverText(returnToolTip);
-        msg.addParts(returnButton);
+        builder.addButton(returnLabel, ChatColor.AQUA, COMMAND_INDEX + next, returnToolTip);
 
-        msg.addText(" ");
+        builder.addText(" ");
 
         if ( page > 1 ) {
-            MessageParts firstButton = new MessageParts(
-                    firstLabel, ChatColor.AQUA);
-            firstButton.setClickEvent(ClickEventType.RUN_COMMAND, commandPre + " 1" + next);
-            firstButton.setHoverText(firstToolTip);
-            msg.addParts(firstButton);
+            builder.addButton(firstLabel, ChatColor.AQUA, commandPre + " 1" + next, firstToolTip);
 
-            msg.addText(" ");
+            builder.addText(" ");
 
-            MessageParts prevButton = new MessageParts(
-                    prevLabel, ChatColor.AQUA);
-            prevButton.setClickEvent(ClickEventType.RUN_COMMAND, commandPre + " " + (page - 1) + next);
-            prevButton.setHoverText(prevToolTip);
-            msg.addParts(prevButton);
+            builder.addButton(prevLabel, ChatColor.AQUA, commandPre + " " + (page - 1) + next, prevToolTip);
 
         } else {
-            msg.addText(firstLabel + " " + prevLabel, ChatColor.WHITE);
+            builder.addText(firstLabel + " " + prevLabel, ChatColor.WHITE);
         }
 
-        msg.addText(" (" + page + "/" + max + ") ");
+        builder.addText(" (" + page + "/" + max + ") ");
 
         if ( page < max ) {
-            MessageParts nextButton = new MessageParts(
-                    nextLabel, ChatColor.AQUA);
-            nextButton.setClickEvent(ClickEventType.RUN_COMMAND, commandPre + " " + (page + 1) + next);
-            nextButton.setHoverText(nextToolTip);
-            msg.addParts(nextButton);
+            builder.addButton(nextLabel, ChatColor.AQUA, commandPre + " " + (page + 1) + next, nextToolTip);
 
-            msg.addText(" ");
+            builder.addText(" ");
 
-            MessageParts lastButton = new MessageParts(
-                    lastLabel, ChatColor.AQUA);
-            lastButton.setClickEvent(ClickEventType.RUN_COMMAND, commandPre + " " + max + next);
-            lastButton.setHoverText(lastToolTip);
-            msg.addParts(lastButton);
+            builder.addButton(lastLabel, ChatColor.AQUA, commandPre + " " + max + next, lastToolTip);
 
         } else {
-            msg.addText(nextLabel + " " + lastLabel, ChatColor.WHITE);
+            builder.addText(nextLabel + " " + lastLabel, ChatColor.WHITE);
         }
 
-        msg.addText(" " + parts);
+        builder.addText(" " + parts);
 
-        msg.send(sender);
+        sender.sendMessage(builder.build());
     }
 }

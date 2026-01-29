@@ -7,3 +7,4 @@
 *.iml
 /bin/
 dependency-reduced-pom.xml
+.claude/settings.local.json

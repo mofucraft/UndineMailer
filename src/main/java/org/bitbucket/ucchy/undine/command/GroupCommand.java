@@ -8,6 +8,7 @@ package org.bitbucket.ucchy.undine.command;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.kyori.adventure.text.Component;
 import org.bitbucket.ucchy.undine.Messages;
 import org.bitbucket.ucchy.undine.UndineMailer;
 import org.bitbucket.ucchy.undine.Utility;
@@ -15,6 +16,7 @@ import org.bitbucket.ucchy.undine.group.GroupData;
 import org.bitbucket.ucchy.undine.group.GroupManager;
 import org.bitbucket.ucchy.undine.group.GroupPermissionMode;
 import org.bitbucket.ucchy.undine.group.SpecialGroupPex;
+import org.bitbucket.ucchy.undine.messaging.ComponentBuilder;
 import org.bitbucket.ucchy.undine.sender.MailSender;
 import org.bitbucket.ucchy.undine.sender.MailSenderConsole;
 import org.bitbucket.ucchy.undine.sender.MailSenderPlayer;
@@ -24,10 +26,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
-
-import com.github.ucchyocean.messaging.tellraw.ClickEventType;
-import com.github.ucchyocean.messaging.tellraw.MessageComponent;
-import com.github.ucchyocean.messaging.tellraw.MessageParts;
 
 /**
  * groupコマンド
@@ -676,19 +674,13 @@ public class GroupCommand implements TabExecutor {
     private void showOKCancelButton(
             MailSender ms, String okCommand, String cancelCommand) {
 
-        MessageComponent msg = new MessageComponent();
-        msg.addText("     ");
-        MessageParts buttonOK = new MessageParts(
-                Messages.get("ButtonOK"), ChatColor.AQUA);
-        buttonOK.setClickEvent(ClickEventType.RUN_COMMAND, okCommand);
-        msg.addParts(buttonOK);
-        msg.addText("     ");
-        MessageParts buttonCancel = new MessageParts(
-                Messages.get("ButtonCancel"), ChatColor.AQUA);
-        buttonCancel.setClickEvent(ClickEventType.RUN_COMMAND, cancelCommand);
-        msg.addParts(buttonCancel);
+        ComponentBuilder builder = new ComponentBuilder();
+        builder.addText("     ");
+        builder.addButton(Messages.get("ButtonOK"), ChatColor.AQUA, okCommand);
+        builder.addText("     ");
+        builder.addButton(Messages.get("ButtonCancel"), ChatColor.AQUA, cancelCommand);
 
-        sendMessageComponent(msg, ms);
+        sendMessageComponent(builder.build(), ms);
     }
 
     /**
@@ -696,11 +688,11 @@ public class GroupCommand implements TabExecutor {
      * @param msg メッセージコンポーネント
      * @param sender 送信先
      */
-    private void sendMessageComponent(MessageComponent msg, MailSender sender) {
+    private void sendMessageComponent(Component msg, MailSender sender) {
         if ( sender instanceof MailSenderPlayer && sender.isOnline() ) {
-            msg.send(sender.getPlayer());
+            sender.getPlayer().sendMessage(msg);
         } else if ( sender instanceof MailSenderConsole ) {
-            msg.send(Bukkit.getConsoleSender());
+            Bukkit.getConsoleSender().sendMessage(msg);
         }
     }
 }
